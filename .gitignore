@@ -2,3 +2,5 @@
 .Rhistory
 .RData
 .Ruserdata
+NOAA_Study_cache
+*.bz2
