@@ -30,3 +30,62 @@ We directly read in the global dataset stored in comma separated file inside bz2
 StormData <- read.csv("StormData.csv.bz2")
 ```
 
+########dim??
+
+
+## Transforming data
+
+For the purpose of our analysis we only keep following columns in dataset  
+EVTYPE - the type of weather event occured  
+FATALITIES - number of fatalities caused by weather event  
+INJURIES - number of injuries caused by weather event  
+PROPDMG - a numeric vector representing property damage in USD  
+PROPDMGEXP -  magnitude of the PROPDMG number, (i.e. “K” for thousands, “M” for millions, and “B” for billions)   
+CROPDMG - a numeric vector representing crop damage in USD
+CROPDMGEXP - magnitude of the CROPDMG number, (i.e. “K” for thousands, “M” for millions, and “B” for billions)
+
+Thus, we subset the global dataset for the listed variables
+```{r echo = TRUE}
+var_names <- c("EVTYPE", "FATALITIES", "INJURIES", "PROPDMG", "PROPDMGEXP", "CROPDMG", "CROPDMGEXP")
+
+storm_tidy <- StormData[var_names]
+```
+
+
+## Cleaning data
+
+Next step is normalize the damage values with respect to corresponding magnitude.  
+First we take a look at magnitude variables:  
+
+``` {r echo = TRUE}
+summary(storm_tidy$PROPDMGEXP)
+summary(storm_tidy$CROPDMGEXP)
+```
+
+As we can see there are bunch of observations with not acceptable values in magnitude.  
+So we change to zero all of them.
+``` {r echo = TRUE}
+storm_tidy[!(storm_tidy$PROPDMGEXP %in% c("K", "k", "M", "m", "B", "b")), ]$PROPDMGEXP <- 0
+storm_tidy[!(storm_tidy$CROPDMGEXP %in% c("K", "k", "M", "m", "B", "b")), ]$CROPDMGEXP <- 0
+```
+
+We check again the summary and see that now only the acceptable values are there
+``` {r echo = TRUE}
+summary(storm_tidy$PROPDMGEXP)
+summary(storm_tidy$CROPDMGEXP)
+```
+
+We transform magnitude from text to numeric multiplicator
+``` {r echo = TRUE}
+storm_tidy[storm_tidy$PROPDMGEXP %in% c("K", "k"), ]$PROPDMGEXP <- 1000
+storm_tidy[storm_tidy$CROPDMGEXP %in% c("K", "k"), ]$CROPDMGEXP <- 1000
+storm_tidy[storm_tidy$PROPDMGEXP %in% c("M", "m"), ]$PROPDMGEXP <- 10^6
+storm_tidy[storm_tidy$CROPDMGEXP %in% c("M", "m"), ]$CROPDMGEXP <- 10^6
+storm_tidy[storm_tidy$PROPDMGEXP %in% c("B", "b"), ]$PROPDMGEXP <- 10^9
+storm_tidy[storm_tidy$CROPDMGEXP %in% c("B", "b"), ]$CROPDMGEXP <- 10^9
+
+head(storm_tidy)
+
+```
+
+

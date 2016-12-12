@@ -13,13 +13,7 @@ unique(StormData$CROPDMGEXP)
 
 x <- StormData[StormData$PROPDMGEXP %in% c("-", "?", "+", "0", "1", "2", "3", "4", "5", "6", "7", "8"),]
 
-var_names <- c("EVTYPE",
-          "FATALITIES",
-          "INJURIES",
-          "PROPDMG",
-          "PROPDMGEXP",
-          "CROPDMG", 
-          "CROPDMGEXP")
+var_names <- c("EVTYPE", "FATALITIES", "INJURIES", "PROPDMG", "PROPDMGEXP", "CROPDMG", "CROPDMGEXP")
 
 storm_tidy <- StormData[var_names]
 library(dplyr)
@@ -33,9 +27,32 @@ pie(storm_tidy$FATALITIES)
 pie(storm_tidy$INJURIES)
 storm_tidy[834,]
 
+StormData[storm_tidy$PROPDMGEXP == "5", ]$REMARKS
+
+x <- storm_tidy[!(storm_tidy$PROPDMGEXP %in% c("K", "k", "M", "m", "B", "b")), ]
+
+storm_tidy[!(storm_tidy$PROPDMGEXP %in% c("K", "k", "M", "m", "B", "b")), ]$PROPDMGEXP <- 0
+
+head(x)
+summary(storm_tidy$PROPDMGEXP)
 
 
+head(storm_tidy[storm_tidy$PROPDMGEXP != '0',])
+
+x <- storm_tidy
+
+x
+
+x$PROPDMGEXP <- as.character(x$PROPDMGEXP)
+head(x)
+
+x[storm_tidy$PROPDMGEXP %in% c("K", "k"), ]$PROPDMGEXP <- 1000
+
+table(x$PROPDMGEXP)
 
 
+rm(list=ls()[-1])
 
+
+ls()[-1]
 
