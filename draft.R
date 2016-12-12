@@ -56,3 +56,23 @@ rm(list=ls()[-1])
 
 ls()[-1]
 
+
+par(mfrow = c(1,2))
+with(fatal, pie(fatalities, labels = paste(EVTYPE[1:5], fatalities[1:5], sep = " - "),
+                clockwise = TRUE))
+with(injur, pie(injures, labels = paste(EVTYPE[1:5], injures[1:5], sep = " - "),
+                clockwise = TRUE))
+
+
+
+
+
+
+
+
+
+
+
+
+
+

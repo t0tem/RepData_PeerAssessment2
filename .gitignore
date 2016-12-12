@@ -3,4 +3,6 @@
 .RData
 .Ruserdata
 NOAA_Study_cache
+NOAA_Study_files
 *.bz2
+rsconnect

@@ -12,10 +12,16 @@ The addressed questions were:
 Across the United States, which types of events are most harmful with respect to population health?  
 Across the United States, which types of events have the greatest economic consequences?  
 
+We used mainly 'base' and 'dplyr' package to transform, group and summarize the data.  
+
+The analysis resulted with following answers:  
+Tornado was the most harmful event for people's health having 5633 people dead and 91346 injured.  
+Flood had the greatest consequences with more than 150 billion dollars of economical damage.  
+
 # Data Processing 
 
 ## Downloading the data
-First we download the data from [this source](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2) and store it in our R working directory (we skip the step if file is already there)
+First we download the data from [this source](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2) and store it in our R working directory (we skip the step if the file is already there)
 ```{r echo = TRUE}
 if(!file.exists("StormData.csv.bz2")) {
       link <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
@@ -27,13 +33,21 @@ if(!file.exists("StormData.csv.bz2")) {
 
 We directly read in the global dataset stored in comma separated file inside bz2 archive
 ```{r echo = TRUE,  cache = TRUE}
-StormData <- read.csv("StormData.csv.bz2")
+StormData <- read.csv("StormData.csv.bz2", stringsAsFactors = FALSE)
 ```
 
-########dim??
+We take a look at dataset dimensions
+```{r echo = TRUE}
+dim(StormData)
+```
+So we have 902297 observations with 37 variables
 
+Let's see the variables names
+```{r echo = TRUE}
+names(StormData)
+```
 
-## Transforming data
+## Transforming and cleaning the data
 
 For the purpose of our analysis we only keep following columns in dataset  
 EVTYPE - the type of weather event occured  
@@ -43,6 +57,7 @@ PROPDMG - a numeric vector representing property damage in USD
 PROPDMGEXP -  magnitude of the PROPDMG number, (i.e. “K” for thousands, “M” for millions, and “B” for billions)   
 CROPDMG - a numeric vector representing crop damage in USD
 CROPDMGEXP - magnitude of the CROPDMG number, (i.e. “K” for thousands, “M” for millions, and “B” for billions)
+Detailed description of global dataset is available in [Storm Data Documentation](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf)
 
 Thus, we subset the global dataset for the listed variables
 ```{r echo = TRUE}
@@ -51,18 +66,20 @@ var_names <- c("EVTYPE", "FATALITIES", "INJURIES", "PROPDMG", "PROPDMGEXP", "CRO
 storm_tidy <- StormData[var_names]
 ```
 
-
-## Cleaning data
+Let's check if there is any NAs in our tidy dataset
+```{r echo = TRUE}
+sum(is.na(storm_tidy))
+```
+Nope. Ok, we can move on.
 
 Next step is normalize the damage values with respect to corresponding magnitude.  
 First we take a look at magnitude variables:  
-
 ``` {r echo = TRUE}
-summary(storm_tidy$PROPDMGEXP)
-summary(storm_tidy$CROPDMGEXP)
+table(storm_tidy$PROPDMGEXP)
+table(storm_tidy$CROPDMGEXP)
 ```
 
-As we can see there are bunch of observations with not acceptable values in magnitude.  
+As we can see there are bunch of observations with not acceptable values in magnitude (not "K", "M" or "B").    
 So we change to zero all of them.
 ``` {r echo = TRUE}
 storm_tidy[!(storm_tidy$PROPDMGEXP %in% c("K", "k", "M", "m", "B", "b")), ]$PROPDMGEXP <- 0
@@ -71,8 +88,8 @@ storm_tidy[!(storm_tidy$CROPDMGEXP %in% c("K", "k", "M", "m", "B", "b")), ]$CROP
 
 We check again the summary and see that now only the acceptable values are there
 ``` {r echo = TRUE}
-summary(storm_tidy$PROPDMGEXP)
-summary(storm_tidy$CROPDMGEXP)
+table(storm_tidy$PROPDMGEXP)
+table(storm_tidy$CROPDMGEXP)
 ```
 
 We transform magnitude from text to numeric multiplicator
@@ -83,9 +100,106 @@ storm_tidy[storm_tidy$PROPDMGEXP %in% c("M", "m"), ]$PROPDMGEXP <- 10^6
 storm_tidy[storm_tidy$CROPDMGEXP %in% c("M", "m"), ]$CROPDMGEXP <- 10^6
 storm_tidy[storm_tidy$PROPDMGEXP %in% c("B", "b"), ]$PROPDMGEXP <- 10^9
 storm_tidy[storm_tidy$CROPDMGEXP %in% c("B", "b"), ]$CROPDMGEXP <- 10^9
-
-head(storm_tidy)
-
 ```
+
+Now we add a new column which will hold total normalized damage in USD as sum of property and crop damages
+```{r echo = TRUE}
+storm_tidy$tot_dmg_norm <- with(storm_tidy, PROPDMG*as.numeric(PROPDMGEXP) + CROPDMG*as.numeric(CROPDMGEXP))
+```
+
+To continue analysis we'll create a new dataset summarised by event type.  
+We'll use library 'dplyr' for that. So we first load the library
+```{r message = FALSE, echo = TRUE}
+library(dplyr)
+```
+
+And then create dataset
+```{r echo = TRUE}
+storm_grouped <- storm_tidy %>%
+      group_by(EVTYPE) %>% 
+      summarise(fatalities = sum(FATALITIES, na.rm = TRUE),
+                injures = sum(INJURIES, na.rm = TRUE),
+                total.damage = sum(tot_dmg_norm, na.rm = TRUE)) %>% 
+      as.data.frame()
+```
+
+
+## Results
+
+### The most harmful events for people's health
+To find out the most harmful event with respect to population health we create two subsets corresponding to the total numbers of fatalities and injures
+```{r echo = TRUE}
+fatal <- storm_grouped[c("EVTYPE", "fatalities")]
+injur <- storm_grouped[c("EVTYPE", "injures")]
+```
+
+and sort both in descending order
+``` {r echo = TRUE}
+fatal <- arrange(fatal, desc(fatalities))
+injur <- arrange(injur, desc(injures))
+```
+
+Thus, here are the most harmful events with respect to population health
+``` {r echo = TRUE}
+head(fatal, n = 5)
+head(injur, n = 5)
+```
+So Tornado is proven to be the most harmful event having 5633 people dead and 91346 injured.
+
+Let's plot the result for top 10 events though
+``` {r echo = TRUE}
+par(mfrow = c(1,2), mar=c(9.1,4.1,4.1,2.1))
+barplot(fatal[1:10,2], names.arg= fatal[1:10,1], 
+        las=2, 
+        cex.names = 0.8, 
+        cex.axis = 0.8,
+        cex.lab = 0.8,
+        cex.main = 0.8,
+        ylab = "people count",
+        main = "Causes of fatalities")
+
+barplot(injur[1:10,2], 
+        names.arg= injur[1:10,1], 
+        las=2, 
+        cex.names = 0.8, 
+        cex.axis = 0.8,
+        cex.lab = 0.8,
+        cex.main = 0.8,
+        ylab = "people count",
+        main = "Causes of injures")
+```
+
+### Events that had the greatest economic consequences
+
+Same methodology we apply to know which types of events had the greatest economic consequences.  
+We create a subset and sort it:
+``` {r echo = TRUE}
+damage <- storm_grouped[c("EVTYPE", "total.damage")]
+damage <- arrange(damage, desc(total.damage))
+```
+
+
+So here are our TOPs
+``` {r echo = TRUE}
+head(damage, n = 5)
+```
+FLOOD had the greatest consequences with more than 150 billion dollars of damage (!)
+
+Let's plot the result for top 10
+``` {r echo = TRUE}
+par(mfrow = c(1,1), mar=c(9.1,6.1,4.1,2.1))
+barplot(damage[1:10,2], 
+        names.arg= damage[1:10,1], 
+        las=2, 
+        cex.names = 0.8, 
+        cex.axis = 0.8,
+        cex.lab = 0.8,
+        cex.main = 0.8,
+        main = "Causes of economical damage")
+title(ylab= "damage in USD", line = 4, cex.lab = 0.8)
+```
+
+
+
 
 
