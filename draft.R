@@ -64,6 +64,15 @@ with(injur, pie(injures, labels = paste(EVTYPE[1:5], injures[1:5], sep = " - "),
                 clockwise = TRUE))
 
 
+#### from the guy on COursera
+rows <- storm[grep(events_regex[13], ignore.case = TRUE, storm$EVTYPE), ]
+rows <- rows[, c("EVTYPE", "FATALITIES", "INJURIES", "PROPDMG", "PROPDMGEXP", "CROPDMG", "CROPDMGEXP")]
+CLEANNAME <- c(rep(events[13], nrow(rows)))
+rows <- cbind(rows, CLEANNAME)
+cleandata <- rbind(cleandata, rows)
+
+events
+events_regex
 
 
 
